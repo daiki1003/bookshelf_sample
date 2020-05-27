@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
 class Book {
   Book(this.id, this.title);
@@ -12,29 +13,35 @@ class Book {
   }
 }
 
-class BookshelfScreen extends StatefulWidget {
-  @override
-  _BookshelfScreenState createState() => _BookshelfScreenState();
-}
-
-class _BookshelfScreenState extends State {
+class Books with ChangeNotifier {
   List<Book> books = [
     Book('1', 'Harry Potter'),
     Book('2', 'FACTFULNESS'),
   ];
 
+  Book findById(String id) {
+    return books.firstWhere((book) => book.id == id);
+  }
+
   void toggleFavorite(String id) {
-    setState(() {
-      books.firstWhere((book) => book.id == id).toggleFavorite();
-    });
+    final book = findById(id);
+    if (book == null) {
+      return;
+    }
+
+    book.toggleFavorite();
+    notifyListeners();
   }
 
   int get favoriteCount {
     return books.where((book) => book.isFavorite).length;
   }
+}
 
+class BookshelfScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final booksData = Provider.of<Books>(context);
     return Scaffold(
       appBar: AppBar(
         title: const Text('Book List'),
@@ -43,12 +50,12 @@ class _BookshelfScreenState extends State {
         child: SizedBox(
           height: 200,
           child: Column(
-            children: [
+            children: <Widget>[
               Expanded(
-                child: Bookshelf(books, toggleFavorite),
+                child: Bookshelf(booksData.books),
               ),
               Center(
-                child: Text('totalFavoriteCount: $favoriteCount'),
+                child: Text('totalFavoriteCount: ${booksData.favoriteCount}'),
               ),
             ],
           ),
@@ -59,37 +66,36 @@ class _BookshelfScreenState extends State {
 }
 
 class Bookshelf extends StatelessWidget {
-  const Bookshelf(this.books, this.toggleFavorite);
+  const Bookshelf(this.books);
 
   final List<Book> books;
-  final Function(String) toggleFavorite;
 
   @override
   Widget build(BuildContext context) {
     return ListView.builder(
       itemCount: books.length,
       itemBuilder: (ctx, index) => BookItem(
-        books[index],
-        toggleFavorite,
+        books[index].id,
       ),
     );
   }
 }
 
 class BookItem extends StatelessWidget {
-  const BookItem(this.book, this.toggleFavorite);
+  const BookItem(this.bookId);
 
-  final Book book;
-  final Function(String) toggleFavorite;
+  final String bookId;
 
   @override
   Widget build(BuildContext context) {
+    final booksData = Provider.of<Books>(context);
+    final book = booksData.findById(bookId);
     return ListTile(
       leading: Text(book.id),
       title: Text(book.title),
       trailing: IconButton(
         icon: Icon(book.isFavorite ? Icons.star : Icons.star_border),
-        onPressed: () => toggleFavorite(book.id),
+        onPressed: () => booksData.toggleFavorite(book.id),
       ),
     );
   }
