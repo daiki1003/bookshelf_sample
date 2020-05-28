@@ -41,7 +41,7 @@ class Books with ChangeNotifier {
 class BookshelfScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    final booksData = Provider.of<Books>(context);
+    final booksData = Provider.of<Books>(context, listen: false);
     return Scaffold(
       appBar: AppBar(
         title: const Text('Book List'),
@@ -54,8 +54,10 @@ class BookshelfScreen extends StatelessWidget {
               Expanded(
                 child: Bookshelf(booksData.books),
               ),
-              Center(
-                child: Text('totalFavoriteCount: ${booksData.favoriteCount}'),
+              Consumer<Books>(
+                builder: (ctx, booksData, _) => Center(
+                  child: Text('totalFavoriteCount: ${booksData.favoriteCount}'),
+                ),
               ),
             ],
           ),
