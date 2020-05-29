@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-class Book {
+class Book with ChangeNotifier {
   Book(this.id, this.title);
 
   final String id;
@@ -10,6 +10,7 @@ class Book {
 
   void toggleFavorite() {
     isFavorite = !isFavorite;
+    notifyListeners();
   }
 }
 
@@ -41,7 +42,6 @@ class Books with ChangeNotifier {
 class BookshelfScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    final booksData = Provider.of<Books>(context, listen: false);
     return Scaffold(
       appBar: AppBar(
         title: const Text('Book List'),
@@ -49,17 +49,21 @@ class BookshelfScreen extends StatelessWidget {
       body: Center(
         child: SizedBox(
           height: 200,
-          child: Column(
-            children: <Widget>[
-              Expanded(
-                child: Bookshelf(booksData.books),
-              ),
-              Consumer<Books>(
-                builder: (ctx, booksData, _) => Center(
-                  child: Text('totalFavoriteCount: ${booksData.favoriteCount}'),
+          child: ChangeNotifierProvider(
+            create: (ctx) => Books(),
+            child: Column(
+              children: <Widget>[
+                Expanded(
+                  child: Bookshelf(),
                 ),
-              ),
-            ],
+                Consumer<Books>(
+                  builder: (ctx, booksData, _) => Center(
+                    child:
+                        Text('totalFavoriteCount: ${booksData.favoriteCount}'),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -68,36 +72,38 @@ class BookshelfScreen extends StatelessWidget {
 }
 
 class Bookshelf extends StatelessWidget {
-  const Bookshelf(this.books);
-
-  final List<Book> books;
-
   @override
   Widget build(BuildContext context) {
+    final booksData = Provider.of<Books>(context, listen: false);
     return ListView.builder(
-      itemCount: books.length,
-      itemBuilder: (ctx, index) => BookItem(
-        books[index].id,
+      itemCount: booksData.books.length,
+      itemBuilder: (ctx, index) => ChangeNotifierProvider.value(
+        value: booksData.books[index],
+        child: BookItem(),
       ),
     );
   }
 }
 
 class BookItem extends StatelessWidget {
-  const BookItem(this.bookId);
-
-  final String bookId;
-
   @override
   Widget build(BuildContext context) {
-    final booksData = Provider.of<Books>(context);
-    final book = booksData.findById(bookId);
-    return ListTile(
-      leading: Text(book.id),
-      title: Text(book.title),
-      trailing: IconButton(
-        icon: Icon(book.isFavorite ? Icons.star : Icons.star_border),
-        onPressed: () => booksData.toggleFavorite(book.id),
+    return Consumer<Book>(
+      builder: (ctx, book, child) => ListTile(
+        leading: child,
+        title: Text(book.id),
+        subtitle: Text(book.title),
+        trailing: IconButton(
+          icon: Icon(book.isFavorite ? Icons.star : Icons.star_border),
+          onPressed: () => Provider.of<Books>(context, listen: false)
+              .toggleFavorite(book.id),
+        ),
+      ),
+      child: IconButton(
+        icon: const Icon(
+          Icons.book,
+        ),
+        onPressed: () {},
       ),
     );
   }
